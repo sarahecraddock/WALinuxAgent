@@ -128,6 +128,7 @@ class Agent(object):
         """
         Run agent daemon
         """
+        
         set_daemon_version(AGENT_VERSION)
         logger.set_prefix("Daemon")
         threading.current_thread().setName("Daemon")
