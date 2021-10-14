@@ -67,6 +67,7 @@ def send_logs_to_telemetry():
 
 class WALAEventOperation:
     ActivateResourceDisk = "ActivateResourceDisk"
+    ActivateDataDisk = "ActivateDataDisk"
     AgentBlacklisted = "AgentBlacklisted"
     AgentEnabled = "AgentEnabled"
     ArtifactsProfileBlob = "ArtifactsProfileBlob"

@@ -132,6 +132,13 @@ class ResourceDiskError(AgentError):
     def __init__(self, msg=None, inner=None):
         super(ResourceDiskError, self).__init__(msg, inner)
 
+class DataDiskError(AgentError):
+    """
+    Mount data disk failed
+    """
+
+    def __init__(self, msg=None, inner=None):
+        super(DataDiskError, self).__init__(msg, inner)
 
 class DhcpError(AgentError):
     """

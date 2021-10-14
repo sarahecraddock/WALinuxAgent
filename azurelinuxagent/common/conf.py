@@ -125,6 +125,7 @@ __SWITCH_OPTIONS__ = {
     "Provisioning.MonitorHostName": False,
     "DetectScvmmEnv": False,
     "ResourceDisk.Format": False,
+    "DataDisk.Format": False,
     "ResourceDisk.EnableSwap": False,
     "ResourceDisk.EnableSwapEncryption": False,
     "AutoUpdate.Enabled": True,
@@ -158,6 +159,9 @@ __STRING_OPTIONS__ = {
     "ResourceDisk.MountPoint": "/mnt/resource",
     "ResourceDisk.MountOptions": None,
     "ResourceDisk.Filesystem": "ext3",
+    "DataDisk.MountDirectory": "/media",
+    "DataDisk.MountOptions": None,
+    "DataDisk.Filesystem": "ext3",
     "AutoUpdate.GAFamily": "Prod",
 }
 
@@ -465,6 +469,17 @@ def get_resourcedisk_filesystem(conf=__conf__):
 def get_resourcedisk_swap_size_mb(conf=__conf__):
     return conf.get_int("ResourceDisk.SwapSizeMB", 0)
 
+def get_datadisk_format(conf=__conf__):
+    return conf.get_switch("DataDisk.Format", False)
+
+def get_datadisk_mountdirectory(conf=__conf__):
+    return conf.get("DataDisk.MountDirectory", "/media")
+
+def get_datadisk_mountoptions(conf=__conf__):
+    return conf.get("DataDisk.MountOptions", None)
+
+def get_datadisk_filesystem(conf=__conf__):
+    return conf.get("DataDisk.Filesystem", "ext3")
 
 def get_autoupdate_gafamily(conf=__conf__):
     return conf.get("AutoUpdate.GAFamily", "Prod")
