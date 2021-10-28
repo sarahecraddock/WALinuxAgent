@@ -36,6 +36,7 @@ from azurelinuxagent.common.version import AGENT_NAME, AGENT_LONG_NAME, \
     DISTRO_NAME, DISTRO_VERSION, PY_VERSION_MAJOR, PY_VERSION_MINOR, \
     PY_VERSION_MICRO
 from azurelinuxagent.daemon.resourcedisk import get_resourcedisk_handler
+from azurelinuxagent.daemon.datadisk import get_datadisk_handler
 from azurelinuxagent.daemon.scvmm import get_scvmm_handler
 from azurelinuxagent.ga.update import get_update_handler
 from azurelinuxagent.pa.provision import get_provision_handler
@@ -127,6 +128,7 @@ class DaemonHandler(object):
         self.protocol_util = get_protocol_util()  # pylint: disable=W0201
         self.scvmm_handler = get_scvmm_handler()  # pylint: disable=W0201
         self.resourcedisk_handler = get_resourcedisk_handler()  # pylint: disable=W0201
+        self.datadisk_handler = get_datadisk_handler()  # pylint: disable=W0201
         self.rdma_handler = get_rdma_handler()  # pylint: disable=W0201
         self.provision_handler = get_provision_handler()  # pylint: disable=W0201
         self.update_handler = get_update_handler()  # pylint: disable=W0201
@@ -136,6 +138,9 @@ class DaemonHandler(object):
 
         if conf.get_resourcedisk_format():
             self.resourcedisk_handler.run()
+
+        if conf.get_datadisk_format():
+            self.datadisk_handler.run()
 
         # Always redetermine the protocol start (e.g., wireserver vs.
         # on-premise) since a VHD can move between environments

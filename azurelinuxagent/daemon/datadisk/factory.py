@@ -17,14 +17,14 @@
 
 from azurelinuxagent.common.version import DISTRO_NAME, DISTRO_VERSION, DISTRO_FULL_NAME 
 from .default import DataDiskHandler
-from .not_implemented import NotImplementedDataDiskHandler
+from .not_implemented import NotImplementedDiskHandler
 
 
-def get_resourcedisk_handler(distro_name=DISTRO_NAME, 
+def get_datadisk_handler(distro_name=DISTRO_NAME, 
                              distro_version=DISTRO_VERSION,  # pylint: disable=W0613
                              distro_full_name=DISTRO_FULL_NAME):  # pylint: disable=W0613
     if distro_name in ("freebsd", "openbsd", "openwrt"):
-        return NotImplementedDataDiskHandler()
+        return NotImplementedDiskHandler()
 
     return DataDiskHandler()
 

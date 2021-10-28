@@ -70,21 +70,18 @@ class DataDiskHandler(object):
                       op=WALAEventOperation.ActivateDataDisk)
         return None
 
-    def enable_swap(self, mount_point):
-        logger.info("Enable swap")
-        try:
-            size_mb = conf.get_resourcedisk_swap_size_mb()
-            self.create_swap_space(mount_point, size_mb)
-        except DataDiskError as e:
-            logger.error("Failed to enable swap {0}", e)
-
     def reread_partition_table(self, device):
         if shellutil.run("sfdisk -R {0}".format(device), chk_err=False):
             shellutil.run("blockdev --rereadpt {0}".format(device),
                           chk_err=False)
 
+    def datadisk_device(self, lun):
+        device_path = os.readlink("/dev/disk/azure/scsi1/lun{0}".format(lun))
+        device = device_path.split('/')[-1]
+        return device
+
     def mount_data_disk(self, mount_point):
-        device = self.osutil.device_for_ide_port(1)
+        device = self.datadisk_device(0)
         if device is None:
             raise DataDiskError("unable to detect disk topology")
 
@@ -94,7 +91,7 @@ class DataDiskHandler(object):
         existing = self.osutil.get_mount_point(mount_list, device)
 
         if existing:
-            logger.info("Resource disk [{0}] is already mounted [{1}]",
+            logger.info("Data disk [{0}] is already mounted [{1}]",
                         partition,
                         existing)
             return existing
@@ -119,42 +116,25 @@ class DataDiskHandler(object):
         mkfs_string = "mkfs.{0} -{2} {1}".format(
             self.fs, partition, force_option)
 
-        if "gpt" in ret[1]:
+        if "unrecognised" in ret[1]:
+            logger.info("Empty disk detected")
+
+            logger.info("Creating new GPT partition")
+            shellutil.run(
+                    "parted {0} --script mklabel gpt mkpart primary {1} 0% 100%".format(device,self.fs))
+
+            logger.info("Format partition [{0}]", mkfs_string)
+            shellutil.run(mkfs_string)
+
+        elif "gpt" in ret[1]:
             logger.info("GPT detected, finding partitions")
             parts = [x for x in ret[1].split("\n") if
                      re.match(r"^\s*[0-9]+", x)]
-            logger.info("Found {0} GPT partition(s).", len(parts))
-            if len(parts) > 1:
-                logger.info("Removing old GPT partitions")
-                for i in range(1, len(parts) + 1):
-                    logger.info("Remove partition {0}", i)
-                    shellutil.run("parted {0} rm {1}".format(device, i))
-
-                logger.info("Creating new GPT partition")
-                shellutil.run(
-                    "parted {0} mkpart primary 0% 100%".format(device))
-
-                logger.info("Format partition [{0}]", mkfs_string)
-                shellutil.run(mkfs_string)
+            logger.info("Found {0} GPT partition(s), skipping partitioning datadisk {1}.", len(parts),device)
         else:
-            logger.info("GPT not detected, determining filesystem")
-            ret = self.change_partition_type(
-                suppress_message=True,
-                option_str="{0} 1 -n".format(device))
-            ptype = ret[1].strip()
-            if ptype == "7" and self.fs != "ntfs":
-                logger.info("The partition is formatted with ntfs, updating "
-                            "partition type to 83")
-                self.change_partition_type(
-                    suppress_message=False,
-                    option_str="{0} 1 83".format(device))
-                self.reread_partition_table(device)
-                logger.info("Format partition [{0}]", mkfs_string)
-                shellutil.run(mkfs_string)
-            else:
-                logger.info("The partition type is {0}", ptype)
+            logger.info("Found existing non-GPT partition(s), skipping partitioning datadisk {0}.", device)
 
-        mount_options = conf.get_resourcedisk_mountoptions()
+        mount_options = conf.get_datadisk_mountoptions()
         mount_string = self.get_mount_string(mount_options,
                                              partition,
                                              mount_point)
@@ -170,25 +150,25 @@ class DataDiskHandler(object):
             raise DataDiskError(
                 "Partition was not created [{0}]".format(partition))
 
-        logger.info("Mount resource disk [{0}]", mount_string)
+        logger.info("Mount data disk [{0}]", mount_string)
         ret, output = shellutil.run_get_output(mount_string, chk_err=False)
-        # if the exit code is 32, then the resource disk can be already mounted
+        # if the exit code is 32, then the data disk can be already mounted
         if ret == 32 and output.find("is already mounted") != -1:
-            logger.warn("Could not mount resource disk: {0}", output)
+            logger.warn("Could not mount data disk: {0}", output)
         elif ret != 0:
             # Some kernels seem to issue an async partition re-read after a
             # 'parted' command invocation. This causes mount to fail if the
             # partition re-read is not complete by the time mount is
             # attempted. Seen in CentOS 7.2. Force a sequential re-read of
             # the partition and try mounting.
-            logger.warn("Failed to mount resource disk. "
+            logger.warn("Failed to mount data disk. "
                         "Retry mounting after re-reading partition info.")
 
             self.reread_partition_table(device)
 
             ret, output = shellutil.run_get_output(mount_string, chk_err=False)
             if ret:
-                logger.warn("Failed to mount resource disk. "
+                logger.warn("Failed to mount data disk. "
                             "Attempting to format and retry mount. [{0}]",
                             output)
 
@@ -201,7 +181,7 @@ class DataDiskHandler(object):
                                                                ret,
                                                                output))
 
-        logger.info("Resource disk {0} is mounted at {1} with {2}",
+        logger.info("Data disk {0} is mounted at {1} with {2}",
                     device,
                     mount_point,
                     self.fs)
