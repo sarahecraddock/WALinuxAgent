@@ -56,14 +56,16 @@ class DataDiskHandler(object):
 
     def run(self):
         if conf.get_datadisk_format():
-            self.activate_data_disk()
+            devices=self.get_datadisk_devices()
+            for device in devices:
+                self.activate_data_disk(device)
 
-    def activate_data_disk(self):
-        logger.info("Activate data disk")
+    def activate_data_disk(self, device):
+        logger.info("Activate data disk {0}".format(device))
         try:
             mount_directory = conf.get_datadisk_mountdirectory()
-            mount_point = os.path.join(mount_directory, "datadisk0")
-            mount_point = self.mount_data_disk(mount_point)
+            mount_point = os.path.join(mount_directory, device)
+            mount_point = self.mount_data_disk(mount_point, device)
         except DataDiskError as e:
             logger.error("Failed to mount data disk {0}", e)
             add_event(name=AGENT_NAME, is_success=False, message=ustr(e),
@@ -75,13 +77,22 @@ class DataDiskHandler(object):
             shellutil.run("blockdev --rereadpt {0}".format(device),
                           chk_err=False)
 
+    def get_datadisk_devices(self):
+        devices=[]
+        luns = os.listdir("/dev/disk/azure/scsi1/")
+        for lun in luns:
+            if "part" not in lun:
+                device_path = os.readlink(os.path.join("/dev/disk/azure/scsi1/", lun))
+                device = device_path.split('/')[-1]
+                devices.append(device)
+        return devices
+
     def datadisk_device(self, lun):
         device_path = os.readlink("/dev/disk/azure/scsi1/lun{0}".format(lun))
         device = device_path.split('/')[-1]
         return device
 
-    def mount_data_disk(self, mount_point):
-        device = self.datadisk_device(0)
+    def mount_data_disk(self, mount_point, device):
         if device is None:
             raise DataDiskError("unable to detect disk topology")
 
