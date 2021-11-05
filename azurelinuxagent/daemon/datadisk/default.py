@@ -80,18 +80,13 @@ class DataDiskHandler(object):
 
     def get_datadisk_devices(self):
         devices=[]
-        luns = os.listdir("/dev/disk/azure/scsi1/")
+        luns = os.listdir(DATADISK_SCSI_PATH)
         for lun in luns:
             if "part" not in lun:
-                device_path = os.readlink(os.path.join("/dev/disk/azure/scsi1/", lun))
+                device_path = os.readlink(os.path.join(DATADISK_SCSI_PATH, lun))
                 device = device_path.split('/')[-1]
                 devices.append(device)
         return devices
-
-    def datadisk_device(self, lun):
-        device_path = os.readlink("/dev/disk/azure/scsi1/lun{0}".format(lun))
-        device = device_path.split('/')[-1]
-        return device
 
     def mount_data_disk(self, mount_point, device):
         if device is None:
