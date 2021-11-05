@@ -43,6 +43,7 @@ Please do not use this disk for storing any personal or application data.
 For additional details to please refer to the MSDN documentation at :
 http://msdn.microsoft.com/en-us/library/windowsazure/jj672979.aspx
 """
+DATADISK_SCSI_PATH="/dev/disk/azure/scsi1"
 
 
 class DataDiskHandler(object):
